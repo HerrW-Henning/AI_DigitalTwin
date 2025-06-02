@@ -1,0 +1,98 @@
+<html>
+<head>
+<title>2.1_Nomalization_Target.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #1750eb;}
+.s4 { color: #067d17;}
+.s5 { color: #0037a6;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+2.1_Nomalization_Target.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 2_Data_Preprocessing</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : 2.1_Nomalization_Target</span>
+<span class="s0"># @Software: PyCharm</span>
+
+<span class="s2">import </span><span class="s1">json</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np</span>
+<span class="s2">import </span><span class="s1">csv</span>
+
+<span class="s2">def </span><span class="s1">min_max_normalize_non_zero(data):</span>
+
+    <span class="s1">data_array = np.array(data, dtype=np.float64)</span>
+    <span class="s1">non_zero_data = data_array[data_array != </span><span class="s3">0</span><span class="s1">]</span>
+
+    <span class="s2">if </span><span class="s1">len(non_zero_data) == </span><span class="s3">0</span><span class="s1">:</span>
+        <span class="s2">return </span><span class="s1">data_array.tolist()</span>
+
+    <span class="s1">min_val = np.min(non_zero_data)</span>
+    <span class="s1">max_val = np.max(non_zero_data)</span>
+
+    <span class="s2">if </span><span class="s1">max_val == min_val:</span>
+        <span class="s1">normalized_data = np.zeros_like(non_zero_data)</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">normalized_data = (non_zero_data - min_val) / (max_val - min_val)</span>
+
+    <span class="s1">data_array[data_array != </span><span class="s3">0</span><span class="s1">] = normalized_data</span>
+
+    <span class="s2">return </span><span class="s1">data_array.tolist()</span>
+
+
+<span class="s2">def </span><span class="s1">percentage_normalize(data):</span>
+
+    <span class="s1">data_array = np.array(data, dtype=np.float64)</span>
+    <span class="s1">total = np.sum(data_array)</span>
+    <span class="s1">percentage_data = (data_array / total)</span>
+
+    <span class="s2">return </span><span class="s1">percentage_data.tolist()</span>
+
+<span class="s2">def </span><span class="s1">process_json_file(file_path, output_directory):</span>
+
+    <span class="s2">with </span><span class="s1">open(file_path, </span><span class="s4">'r'</span><span class="s1">) </span><span class="s2">as </span><span class="s1">f:</span>
+        <span class="s1">json_data = json.load(f)</span>
+
+    <span class="s2">for </span><span class="s1">data_entry </span><span class="s2">in </span><span class="s1">json_data:</span>
+        <span class="s2">for </span><span class="s1">field </span><span class="s2">in </span><span class="s1">data_entry[</span><span class="s4">'schema'</span><span class="s1">][</span><span class="s4">'fields'</span><span class="s1">]:</span>
+            <span class="s1">field_name = field[</span><span class="s4">'name'</span><span class="s1">]</span>
+            <span class="s2">if </span><span class="s1">field_name != </span><span class="s4">&quot;number_particles&quot; </span><span class="s2">and </span><span class="s1">isinstance(data_entry[</span><span class="s4">'data'</span><span class="s1">][</span><span class="s3">0</span><span class="s1">][field_name], list):</span>
+                <span class="s1">data_entry[</span><span class="s4">'data'</span><span class="s1">][</span><span class="s3">0</span><span class="s1">][field_name] = min_max_normalize_non_zero(data_entry[</span><span class="s4">'data'</span><span class="s1">][</span><span class="s3">0</span><span class="s1">][field_name])</span>
+
+            <span class="s2">elif </span><span class="s1">field_name == </span><span class="s4">&quot;number_particles&quot; </span><span class="s2">and </span><span class="s1">isinstance(data_entry[</span><span class="s4">'data'</span><span class="s1">][</span><span class="s3">0</span><span class="s1">][field_name], list):</span>
+                <span class="s1">data_entry[</span><span class="s4">'data'</span><span class="s1">][</span><span class="s3">0</span><span class="s1">][field_name] = percentage_normalize(data_entry[</span><span class="s4">'data'</span><span class="s1">][</span><span class="s3">0</span><span class="s1">][field_name])</span>
+
+    <span class="s1">os.makedirs(output_directory, exist_ok=</span><span class="s2">True</span><span class="s1">)</span>
+    <span class="s1">file_name = os.path.basename(file_path)</span>
+    <span class="s1">output_file_path = os.path.join(output_directory, file_name)</span>
+
+    <span class="s2">with </span><span class="s1">open(output_file_path, </span><span class="s4">'w'</span><span class="s1">) </span><span class="s2">as </span><span class="s1">f:</span>
+        <span class="s1">json.dump(json_data, f, indent=</span><span class="s3">4</span><span class="s1">)</span>
+
+    <span class="s1">print(</span><span class="s4">f&quot;Processed file saved at: </span><span class="s5">{</span><span class="s1">output_file_path</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">process_all_json_files(input_directory, output_directory):</span>
+
+    <span class="s2">for </span><span class="s1">file_name </span><span class="s2">in </span><span class="s1">os.listdir(input_directory):</span>
+        <span class="s2">if </span><span class="s1">file_name.endswith(</span><span class="s4">'.json'</span><span class="s1">):</span>
+            <span class="s1">file_path = os.path.join(input_directory, file_name)</span>
+            <span class="s1">process_json_file(file_path, output_directory)</span>
+
+<span class="s1">input_directory = </span><span class="s4">r'D:\Programmierung\Programmierung_fuer_MA\Final\1_Data_Convert\Filtered_Data'</span>
+<span class="s1">output_directory = </span><span class="s4">r'D:\Programmierung\Programmierung_fuer_MA\Final\2_Data_Preprocessing\Filtered_Target_Norm'</span>
+
+<span class="s1">process_all_json_files(input_directory, output_directory)</span>
+</pre>
+</body>
+</html>

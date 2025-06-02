@@ -1,0 +1,257 @@
+<html>
+<head>
+<title>1.1_Data_Convert.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #067d17;}
+.s4 { color: #0037a6;}
+.s5 { color: #1750eb;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+1.1_Data_Convert.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 1_Data_Convert</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : 1.1_Data_Convert</span>
+<span class="s0"># @Software: PyCharm</span>
+
+
+<span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np</span>
+<span class="s2">import </span><span class="s1">pandas </span><span class="s2">as </span><span class="s1">pd</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">import </span><span class="s1">json</span>
+
+
+<span class="s2">def </span><span class="s1">list_csvs():</span>
+
+    <span class="s1">file_path = </span><span class="s3">r'D:\Programmierung\Programmierung_fuer_MA\Final\1_Data_Convert\Original_Data'</span>
+
+    <span class="s1">list_csvs = []</span>
+
+    <span class="s2">for </span><span class="s1">r, _d, f </span><span class="s2">in </span><span class="s1">os.walk(file_path):</span>
+        <span class="s2">for </span><span class="s1">csv </span><span class="s2">in </span><span class="s1">f:</span>
+            <span class="s2">if </span><span class="s1">csv.endswith(</span><span class="s3">&quot;.csv&quot;</span><span class="s1">):</span>
+                <span class="s1">csv_path = os.path.join(r, csv)</span>
+                <span class="s1">df = pd.read_csv(csv_path)</span>
+                <span class="s1">print(</span><span class="s3">f&quot;File: </span><span class="s4">{</span><span class="s1">csv_path</span><span class="s4">}</span><span class="s3">, Column Names: </span><span class="s4">{</span><span class="s1">df.columns.tolist()</span><span class="s4">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+                <span class="s1">list_csvs.append(csv_path)</span>
+
+    <span class="s2">return </span><span class="s1">list_csvs</span>
+
+<span class="s2">def </span><span class="s1">divide_into_layers(x_layers, y_layers, file_path):</span>
+
+    <span class="s1">df = pd.read_csv(file_path)</span>
+    <span class="s1">rows = df.shape[</span><span class="s5">0</span><span class="s1">]</span>
+
+    <span class="s1">required_columns = [</span><span class="s3">'ParticleX-Coordinate'</span><span class="s1">, </span><span class="s3">'ParticleY-Coordinate'</span><span class="s1">, </span><span class="s3">'ParticleZ-Coordinate'</span><span class="s1">,</span>
+                        <span class="s3">'AbsoluteTranslationalVelocity'</span><span class="s1">, </span><span class="s3">'Power_Dissipation'</span><span class="s1">, </span><span class="s3">'Power_Impact'</span><span class="s1">, </span><span class="s3">'Power_Shear'</span><span class="s1">,</span>
+                        <span class="s3">'Velocity_Impact_Normal_Mean'</span><span class="s1">]</span>
+    <span class="s1">missing_columns = [col </span><span class="s2">for </span><span class="s1">col </span><span class="s2">in </span><span class="s1">required_columns </span><span class="s2">if </span><span class="s1">col </span><span class="s2">not in </span><span class="s1">df.columns]</span>
+
+    <span class="s2">if </span><span class="s1">missing_columns:</span>
+        <span class="s2">raise </span><span class="s1">KeyError(</span><span class="s3">f&quot;Missing columns in CSV file: </span><span class="s4">{</span><span class="s1">missing_columns</span><span class="s4">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+    <span class="s1">print(</span><span class="s3">&quot;Unique Column Names:&quot;</span><span class="s1">, df.columns.unique())</span>
+
+    <span class="s1">velo_abs_trans = []</span>
+    <span class="s1">pow_dissip = []</span>
+    <span class="s1">pow_imp = []</span>
+    <span class="s1">pow_sh = []</span>
+    <span class="s1">velo_imp_norm_mean = []</span>
+    <span class="s1">num_particles = []</span>
+
+    <span class="s1">total_particles = </span><span class="s5">0</span>
+
+    <span class="s2">for </span><span class="s1">k </span><span class="s2">in </span><span class="s1">range(</span><span class="s5">0</span><span class="s1">, </span><span class="s5">40</span><span class="s1">):</span>
+
+        <span class="s1">velocity_absolute_translational = [</span><span class="s5">0 </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(x_layers * y_layers)]</span>
+        <span class="s1">power_dissipation = [</span><span class="s5">0 </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(x_layers * y_layers)]</span>
+        <span class="s1">power_impact = [</span><span class="s5">0 </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(x_layers * y_layers)]</span>
+        <span class="s1">power_shear = [</span><span class="s5">0 </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(x_layers * y_layers)]</span>
+        <span class="s1">velocity_impact_normal_mean = [</span><span class="s5">0 </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(x_layers * y_layers)]</span>
+        <span class="s1">number_particles = [</span><span class="s5">0 </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(x_layers * y_layers)]</span>
+
+        <span class="s1">df_z_begin = df.loc[df[</span><span class="s3">'ParticleZ-Coordinate'</span><span class="s1">] &gt; -</span><span class="s5">0.152 </span><span class="s1">+ </span><span class="s5">0.00449 </span><span class="s1">* k]</span>
+        <span class="s1">df_z_end = df_z_begin.loc[df_z_begin[</span><span class="s3">'ParticleZ-Coordinate'</span><span class="s1">] &lt; -</span><span class="s5">0.152 </span><span class="s1">+ </span><span class="s5">0.00449 </span><span class="s1">+ </span><span class="s5">0.00449 </span><span class="s1">* k]</span>
+
+        <span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">range(</span><span class="s5">0</span><span class="s1">, </span><span class="s5">20</span><span class="s1">):</span>
+            <span class="s1">df_zx_begin = df_z_end.loc[df_z_end[</span><span class="s3">'ParticleX-Coordinate'</span><span class="s1">] &gt; -</span><span class="s5">0.04315 </span><span class="s1">+ </span><span class="s5">0.004315 </span><span class="s1">* i]</span>
+            <span class="s1">df_zx_end = df_zx_begin.loc[df_zx_begin[</span><span class="s3">'ParticleX-Coordinate'</span><span class="s1">] &lt; -</span><span class="s5">0.04315 </span><span class="s1">+ </span><span class="s5">0.004315 </span><span class="s1">+ </span><span class="s5">0.004315 </span><span class="s1">* i]</span>
+
+            <span class="s2">for </span><span class="s1">j </span><span class="s2">in </span><span class="s1">range(</span><span class="s5">0</span><span class="s1">, </span><span class="s5">20</span><span class="s1">):</span>
+                <span class="s1">df_zxy_begin = df_zx_end.loc[df_zx_end[</span><span class="s3">'ParticleY-Coordinate'</span><span class="s1">] &gt; -</span><span class="s5">0.04315 </span><span class="s1">+ </span><span class="s5">0.004315 </span><span class="s1">* j]</span>
+                <span class="s1">df_zxy = df_zxy_begin.loc[df_zxy_begin[</span><span class="s3">'ParticleY-Coordinate'</span><span class="s1">] &lt; -</span><span class="s5">0.04315 </span><span class="s1">+ </span><span class="s5">0.004315 </span><span class="s1">+ </span><span class="s5">0.004315 </span><span class="s1">* j]</span>
+
+                <span class="s1">V_absolute_translational = df_zxy[</span><span class="s3">'AbsoluteTranslationalVelocity'</span><span class="s1">].sum()</span>
+                <span class="s1">velocity_absolute_translational[j + i * x_layers] = V_absolute_translational</span>
+
+                <span class="s1">P_dissipation = df_zxy[</span><span class="s3">'Power_Dissipation'</span><span class="s1">].sum()</span>
+                <span class="s1">power_dissipation[j + i * x_layers] = P_dissipation</span>
+
+                <span class="s1">P_impact = df_zxy[</span><span class="s3">'Power_Impact'</span><span class="s1">].sum()</span>
+                <span class="s1">power_impact[j + i * x_layers] = P_impact</span>
+
+                <span class="s1">P_shear = df_zxy[</span><span class="s3">'Power_Shear'</span><span class="s1">].sum()</span>
+                <span class="s1">power_shear[j + i * x_layers] = P_shear</span>
+
+                <span class="s1">V_impact_normal_mean = df_zxy[</span><span class="s3">'Velocity_Impact_Normal_Mean'</span><span class="s1">].sum()</span>
+                <span class="s1">velocity_impact_normal_mean[j + i * x_layers] = V_impact_normal_mean</span>
+
+                <span class="s1">number_particles[j + i * x_layers] = df_zxy.shape[</span><span class="s5">0</span><span class="s1">]</span>
+
+                <span class="s1">total_particles += df_zxy.shape[</span><span class="s5">0</span><span class="s1">]</span>
+
+                <span class="s2">if </span><span class="s1">df_zxy.empty:</span>
+                    <span class="s1">print(</span><span class="s3">f&quot;Empty DataFrame at Z layer </span><span class="s4">{</span><span class="s1">k</span><span class="s4">}</span><span class="s3">, X layer </span><span class="s4">{</span><span class="s1">i</span><span class="s4">}</span><span class="s3">, Y layer </span><span class="s4">{</span><span class="s1">j</span><span class="s4">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">print(</span><span class="s3">f&quot;DataFrame Size at Z layer </span><span class="s4">{</span><span class="s1">k</span><span class="s4">}</span><span class="s3">, X layer </span><span class="s4">{</span><span class="s1">i</span><span class="s4">}</span><span class="s3">, Y layer </span><span class="s4">{</span><span class="s1">j</span><span class="s4">}</span><span class="s3">: </span><span class="s4">{</span><span class="s1">df_zxy.shape</span><span class="s4">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+
+        <span class="s1">velocity_absolute_translational = np.array(velocity_absolute_translational, dtype=np.float64)</span>
+        <span class="s1">power_dissipation = np.array(power_dissipation, dtype=np.float64)</span>
+        <span class="s1">power_impact = np.array(power_impact, dtype=np.float64)</span>
+        <span class="s1">power_shear = np.array(power_shear, dtype=np.float64)</span>
+        <span class="s1">velocity_impact_normal_mean = np.array(velocity_impact_normal_mean, dtype=np.float64)</span>
+
+        <span class="s1">velo_abs_trans += velocity_absolute_translational.tolist()</span>
+        <span class="s1">pow_dissip += power_dissipation.tolist()</span>
+        <span class="s1">pow_imp += power_impact.tolist()</span>
+        <span class="s1">pow_sh += power_shear.tolist()</span>
+        <span class="s1">velo_imp_norm_mean += velocity_impact_normal_mean.tolist()</span>
+        <span class="s1">num_particles += number_particles</span>
+
+        <span class="s1">print(velo_abs_trans)</span>
+        <span class="s1">print(num_particles)</span>
+
+    <span class="s1">num_particles = np.array(num_particles, dtype=np.float64)</span>
+
+    <span class="s2">return </span><span class="s1">velo_abs_trans, pow_dissip, pow_imp, pow_sh, velo_imp_norm_mean, num_particles.tolist()</span>
+
+
+
+<span class="s2">def </span><span class="s1">data_to_json(file_path):</span>
+
+    <span class="s1">parameter_lookup = {</span>
+        <span class="s3">'static friction p-w'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">0.1</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">0.5</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">0.9</span><span class="s1">},</span>
+        <span class="s3">'static friction p-p'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">0.1</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">0.5</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">0.9</span><span class="s1">},</span>
+        <span class="s3">'rolling resistance'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">0.001</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">0.1</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">0.5</span><span class="s1">},</span>
+        <span class="s3">'E Modul'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">1</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">50</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">200</span><span class="s1">},</span>
+        <span class="s3">'restitution coefficient p-w'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">0.1</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">0.5</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">0.9</span><span class="s1">},</span>
+        <span class="s3">'restitution coefficient p-p'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">0.1</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">0.5</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">0.9</span><span class="s1">},</span>
+        <span class="s3">'viscosity'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">0.0011</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">1</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">100</span><span class="s1">},</span>
+        <span class="s3">'coupling'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">1</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">2</span><span class="s1">},</span>
+        <span class="s3">'rotational speed'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">6</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">9</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">12</span><span class="s1">},</span>
+        <span class="s3">'value of flow'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">20</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">40</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">60</span><span class="s1">},</span>
+        <span class="s3">'diameter'</span><span class="s1">: {</span><span class="s3">'min'</span><span class="s1">: </span><span class="s5">1</span><span class="s1">, </span><span class="s3">'standard'</span><span class="s1">: </span><span class="s5">3</span><span class="s1">, </span><span class="s3">'max'</span><span class="s1">: </span><span class="s5">5</span><span class="s1">}</span>
+    <span class="s1">}</span>
+
+
+    <span class="s1">parameter_info = {param_key: param_values[</span><span class="s3">'standard'</span><span class="s1">] </span><span class="s2">for </span><span class="s1">param_key, param_values </span><span class="s2">in </span><span class="s1">parameter_lookup.items()}</span>
+
+    <span class="s2">if </span><span class="s3">&quot;one way&quot; </span><span class="s2">in </span><span class="s1">file_path.lower():</span>
+        <span class="s1">parameter_info[</span><span class="s3">'coupling'</span><span class="s1">] = parameter_lookup[</span><span class="s3">'coupling'</span><span class="s1">][</span><span class="s3">'min'</span><span class="s1">]</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">parameter_info[</span><span class="s3">'coupling'</span><span class="s1">] = parameter_lookup[</span><span class="s3">'coupling'</span><span class="s1">][</span><span class="s3">'standard'</span><span class="s1">]</span>
+
+    <span class="s2">for </span><span class="s1">param_key, param_values </span><span class="s2">in </span><span class="s1">parameter_lookup.items():</span>
+        <span class="s1">pattern = </span><span class="s3">r&quot;(min|max)?\s*&quot; </span><span class="s1">+ param_key.replace(</span><span class="s3">&quot; &quot;</span><span class="s1">, </span><span class="s3">r&quot;\s*&quot;</span><span class="s1">)</span>
+        <span class="s1">match = re.search(pattern, file_path, re.IGNORECASE)</span>
+
+        <span class="s2">if </span><span class="s1">match:</span>
+            <span class="s1">min_max_prefix = match.group(</span><span class="s5">1</span><span class="s1">)</span>
+            <span class="s1">parameter_info[param_key] = param_values[min_max_prefix] </span><span class="s2">if </span><span class="s1">min_max_prefix </span><span class="s2">else </span><span class="s1">param_values[</span><span class="s3">'standard'</span><span class="s1">]</span>
+
+    <span class="s1">diameter_match = re.search(</span><span class="s3">r'(\d+)mm'</span><span class="s1">, file_path, re.IGNORECASE)</span>
+    <span class="s2">if </span><span class="s1">diameter_match:</span>
+        <span class="s1">parameter_info[</span><span class="s3">'diameter'</span><span class="s1">] = float(diameter_match.group(</span><span class="s5">1</span><span class="s1">))</span>
+
+    <span class="s2">for </span><span class="s1">key </span><span class="s2">in </span><span class="s1">parameter_lookup.keys():</span>
+        <span class="s2">if </span><span class="s1">key </span><span class="s2">not in </span><span class="s1">parameter_info:</span>
+            <span class="s1">parameter_info[key] = parameter_lookup[key][</span><span class="s3">'standard'</span><span class="s1">]</span>
+
+    <span class="s1">print(</span><span class="s3">&quot;Extracted parameter info:&quot;</span><span class="s1">, parameter_info)</span>
+
+    <span class="s1">velo_abs_trans, pow_dissip, pow_imp, pow_sh, velo_imp_norm_mean, num_particles = divide_into_layers(</span><span class="s5">20</span><span class="s1">, </span><span class="s5">20</span><span class="s1">,</span>
+                                                                                                        <span class="s1">file_path)</span>
+
+    <span class="s1">output_parameters = {</span>
+        <span class="s3">&quot;velocity_absolute_translational&quot;</span><span class="s1">: velo_abs_trans,</span>
+        <span class="s3">&quot;power_dissipation&quot;</span><span class="s1">: pow_dissip,</span>
+        <span class="s3">&quot;power_impact&quot;</span><span class="s1">: pow_imp,</span>
+        <span class="s3">&quot;power_shear&quot;</span><span class="s1">: pow_sh,</span>
+        <span class="s3">&quot;velocity_impact_normal_mean&quot;</span><span class="s1">: velo_imp_norm_mean,</span>
+        <span class="s3">&quot;number_particles&quot;</span><span class="s1">: num_particles</span>
+    <span class="s1">}</span>
+
+    <span class="s1">file_name_parts = re.split(</span><span class="s3">r'[_\\/]'</span><span class="s1">, file_path)</span>
+    <span class="s1">underscore_name = file_name_parts[-</span><span class="s5">3</span><span class="s1">]</span>
+    <span class="s1">time_suffix = re.search(</span><span class="s3">r'_(\d+\.?\d*)s'</span><span class="s1">, file_path).group(</span><span class="s5">1</span><span class="s1">)</span>
+
+    <span class="s1">print(</span><span class="s3">&quot;underscore name:&quot;</span><span class="s1">, underscore_name, </span><span class="s3">&quot;time suffix:&quot;</span><span class="s1">, time_suffix)</span>
+
+    <span class="s2">for </span><span class="s1">param, data </span><span class="s2">in </span><span class="s1">output_parameters.items():</span>
+        <span class="s1">dict1 = {</span>
+            <span class="s3">&quot;schema&quot;</span><span class="s1">: {</span>
+                <span class="s3">&quot;fields&quot;</span><span class="s1">: [</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;static friction p-w&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;static friction p-p&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;rolling resistance&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;E Modul&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;restitution coefficient p-w&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;restitution coefficient p-p&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;viscosity&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;coupling&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;rotational speed&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;value of flow&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: </span><span class="s3">&quot;diameter&quot;</span><span class="s1">, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;number&quot;</span><span class="s1">},</span>
+                    <span class="s1">{</span><span class="s3">&quot;name&quot;</span><span class="s1">: param, </span><span class="s3">&quot;type&quot;</span><span class="s1">: </span><span class="s3">&quot;string&quot;</span><span class="s1">}</span>
+                <span class="s1">]</span>
+            <span class="s1">},</span>
+            <span class="s3">&quot;data&quot;</span><span class="s1">: [</span>
+                <span class="s1">{</span>
+                    <span class="s3">'static friction p-w'</span><span class="s1">: parameter_info[</span><span class="s3">'static friction p-w'</span><span class="s1">],</span>
+                    <span class="s3">'static friction p-p'</span><span class="s1">: parameter_info[</span><span class="s3">'static friction p-p'</span><span class="s1">],</span>
+                    <span class="s3">'rolling resistance'</span><span class="s1">: parameter_info[</span><span class="s3">'rolling resistance'</span><span class="s1">],</span>
+                    <span class="s3">'E Modul'</span><span class="s1">: parameter_info[</span><span class="s3">'E Modul'</span><span class="s1">],</span>
+                    <span class="s3">'restitution coefficient p-w'</span><span class="s1">: parameter_info[</span><span class="s3">'restitution coefficient p-w'</span><span class="s1">],</span>
+                    <span class="s3">'restitution coefficient p-p'</span><span class="s1">: parameter_info[</span><span class="s3">'restitution coefficient p-p'</span><span class="s1">],</span>
+                    <span class="s3">'viscosity'</span><span class="s1">: parameter_info[</span><span class="s3">'viscosity'</span><span class="s1">],</span>
+                    <span class="s3">'coupling'</span><span class="s1">: parameter_info[</span><span class="s3">'coupling'</span><span class="s1">],</span>
+                    <span class="s3">'rotational speed'</span><span class="s1">: parameter_info[</span><span class="s3">'rotational speed'</span><span class="s1">],</span>
+                    <span class="s3">'value of flow'</span><span class="s1">: parameter_info[</span><span class="s3">'value of flow'</span><span class="s1">],</span>
+                    <span class="s3">'diameter'</span><span class="s1">: parameter_info[</span><span class="s3">'diameter'</span><span class="s1">],</span>
+                    <span class="s1">param: data</span>
+                <span class="s1">},</span>
+            <span class="s1">]</span>
+        <span class="s1">}</span>
+
+        <span class="s1">data = [dict1]</span>
+
+        <span class="s1">json_file_name = </span><span class="s3">f&quot;</span><span class="s4">{</span><span class="s1">underscore_name</span><span class="s4">}</span><span class="s3">_</span><span class="s4">{</span><span class="s1">time_suffix</span><span class="s4">}</span><span class="s3">_</span><span class="s4">{</span><span class="s1">param</span><span class="s4">}</span><span class="s3">.json&quot;</span>
+        <span class="s1">json_file_name = json_file_name.replace(</span><span class="s3">':'</span><span class="s1">, </span><span class="s3">'_'</span><span class="s1">)</span>
+
+        <span class="s1">output_dir = os.path.join(os.getcwd(), </span><span class="s3">'Original_Data_Json'</span><span class="s1">)</span>
+        <span class="s1">os.makedirs(output_dir, exist_ok=</span><span class="s2">True</span><span class="s1">)</span>
+        <span class="s1">json_file_path = os.path.join(output_dir, json_file_name)</span>
+
+        <span class="s2">with </span><span class="s1">open(json_file_path, </span><span class="s3">'w'</span><span class="s1">) </span><span class="s2">as </span><span class="s1">json_file:</span>
+            <span class="s1">json.dump(data, json_file, indent=</span><span class="s5">2</span><span class="s1">)</span>
+        <span class="s1">print(</span><span class="s3">f&quot;JSON file saved at: </span><span class="s4">{</span><span class="s1">json_file_path</span><span class="s4">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+<span class="s1">csv_files = list_csvs()</span>
+<span class="s2">for </span><span class="s1">csv_file </span><span class="s2">in </span><span class="s1">csv_files:</span>
+    <span class="s1">data_to_json(csv_file)</span>
+
+</pre>
+</body>
+</html>

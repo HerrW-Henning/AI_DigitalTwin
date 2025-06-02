@@ -1,0 +1,139 @@
+<html>
+<head>
+<title>5.1_predict_Initial.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #067d17;}
+.s4 { color: #0037a6;}
+.s5 { color: #1750eb;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+5.1_predict_Initial.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 5_Prediction_and_Bewertung</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : 5.1_predict_Initial</span>
+<span class="s0"># @Software: PyCharm</span>
+
+
+<span class="s2">import </span><span class="s1">json</span>
+<span class="s2">import </span><span class="s1">matplotlib.pyplot </span><span class="s2">as </span><span class="s1">plt</span>
+<span class="s2">import </span><span class="s1">seaborn </span><span class="s2">as </span><span class="s1">sns</span>
+<span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">pandas </span><span class="s2">as </span><span class="s1">pd</span>
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">import </span><span class="s1">tensorflow </span><span class="s2">as </span><span class="s1">tf</span>
+<span class="s2">import </span><span class="s1">autokeras </span><span class="s2">as </span><span class="s1">ak</span>
+<span class="s2">from </span><span class="s1">datetime </span><span class="s2">import </span><span class="s1">datetime</span>
+<span class="s2">import </span><span class="s1">csv</span>
+<span class="s2">from </span><span class="s1">tensorflow </span><span class="s2">import </span><span class="s1">keras</span>
+<span class="s2">from </span><span class="s1">tensorflow.keras.models </span><span class="s2">import </span><span class="s1">load_model</span>
+
+<span class="s1">model = tf.keras.models.load_model(</span><span class="s3">'D:</span><span class="s4">\\</span><span class="s3">Programmierung</span><span class="s4">\\</span><span class="s3">Programmierung_fuer_MA</span><span class="s4">\\</span><span class="s3">Final</span><span class="s4">\\</span><span class="s3">'</span>
+                                   <span class="s3">'3_Create_NN</span><span class="s4">\\</span><span class="s3">Filtered_Target_Norm_2</span><span class="s4">\\</span><span class="s3">Autokeras_models_MTL6</span><span class="s4">\\</span><span class="s3">ak_best_model'</span><span class="s1">)</span>
+<span class="s1">model.summary()</span>
+
+<span class="s2">def </span><span class="s1">display_info_panel():</span>
+    <span class="s1">print(</span><span class="s3">&quot;Info Panel:&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;-------------&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For static friction p-w: Value should be between 0.1 and 0.9.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For static friction p-p: Value should be between 0.1 and 0.9.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For rolling resistance: Value should be between 0.001 and 0.5.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For E Modul: Value should be between 1 and 200.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For restitution coefficient p-w: Value should be between 0.1 and 0.9.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For restitution coefficient p-p: Value should be between 0.1 and 0.9.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For viscosity: Value should be between 0.0011 and 100.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For coupling: Value should be either 1 or 2.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For rotational speed: Value should be between 6 and 12.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For value of flow: Value should be between 20 and 60.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For diameter: Value should be between 1 and 5.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;For timestep: Value should be lower than 0.5.&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">&quot;-------------&quot;</span><span class="s1">)</span>
+
+<span class="s2">def </span><span class="s1">predict_input():</span>
+
+    <span class="s1">static_friction_pw = </span><span class="s5">0.5</span>
+    <span class="s1">static_friction_pp = </span><span class="s5">0.5</span>
+    <span class="s1">rolling_resistance = </span><span class="s5">0.1</span>
+    <span class="s1">E_Modul = </span><span class="s5">50</span>
+    <span class="s1">restitution_coefficient_pw = </span><span class="s5">0.5</span>
+    <span class="s1">restitution_coefficient_pp = </span><span class="s5">0.5</span>
+    <span class="s1">viscosity = </span><span class="s5">1</span>
+    <span class="s1">coupling = </span><span class="s5">2</span>
+    <span class="s1">rotational_speed = </span><span class="s5">9</span>
+    <span class="s1">value_of_flow = </span><span class="s5">40</span>
+    <span class="s1">diameter = </span><span class="s5">3</span>
+    <span class="s1">timestep = </span><span class="s5">0.5</span>
+
+    <span class="s1">input_data = np.array([[static_friction_pw, static_friction_pp, rolling_resistance, E_Modul,</span>
+                            <span class="s1">restitution_coefficient_pw, restitution_coefficient_pp, viscosity,</span>
+                            <span class="s1">coupling, rotational_speed, value_of_flow, diameter, timestep]])</span>
+
+
+    <span class="s1">predictions = model.predict(input_data)</span>
+    <span class="s1">real_predictions = np.maximum(predictions, </span><span class="s5">0</span><span class="s1">)</span>
+    <span class="s1">save_predictions_to_csv(input_data, real_predictions)</span>
+
+<span class="s2">def </span><span class="s1">save_predictions_to_csv(input_data, predictions):</span>
+
+    <span class="s1">current_date = datetime.now().strftime(</span><span class="s3">&quot;%y-%m-%d %H-%M&quot;</span><span class="s1">)</span>
+
+    <span class="s1">script_dir = os.path.dirname(os.path.abspath(__file__))</span>
+    <span class="s1">save_dir = os.path.join(script_dir, </span><span class="s3">f'predicted_</span><span class="s4">{</span><span class="s1">current_date</span><span class="s4">}</span><span class="s3">'</span><span class="s1">)</span>
+    <span class="s1">os.makedirs(save_dir, exist_ok=</span><span class="s2">True</span><span class="s1">)</span>
+
+    <span class="s1">output_parameters = [</span>
+        <span class="s3">&quot;number_particles&quot;</span><span class="s1">,</span>
+        <span class="s3">&quot;power_dissipation&quot;</span><span class="s1">,</span>
+        <span class="s3">&quot;power_impact&quot;</span><span class="s1">,</span>
+        <span class="s3">&quot;power_shear&quot;</span><span class="s1">,</span>
+        <span class="s3">&quot;velocity_absolute_translational&quot;</span><span class="s1">,</span>
+        <span class="s3">&quot;velocity_impact_normal_mean&quot;</span><span class="s1">,</span>
+    <span class="s1">]</span>
+
+    <span class="s1">scaling_factor = </span><span class="s5">1</span>
+
+    <span class="s2">for </span><span class="s1">i, prediction </span><span class="s2">in </span><span class="s1">enumerate(predictions):</span>
+
+        <span class="s2">if </span><span class="s1">output_parameters[i] == </span><span class="s3">&quot;number_particles&quot;</span><span class="s1">:</span>
+            <span class="s1">prediction = prediction * scaling_factor</span>
+
+        <span class="s1">csv_file_path = os.path.join(save_dir, </span><span class="s3">f'</span><span class="s4">{</span><span class="s1">output_parameters[i]</span><span class="s4">}</span><span class="s3">_</span><span class="s4">{</span><span class="s1">current_date</span><span class="s4">}</span><span class="s3">.csv'</span><span class="s1">)</span>
+
+        <span class="s2">with </span><span class="s1">open(csv_file_path, </span><span class="s3">'w'</span><span class="s1">, newline=</span><span class="s3">''</span><span class="s1">) </span><span class="s2">as </span><span class="s1">csv_file:</span>
+            <span class="s1">csv_writer = csv.writer(csv_file)</span>
+
+            <span class="s1">csv_writer.writerow([</span><span class="s3">&quot;Date of prediction:&quot;</span><span class="s1">, current_date])</span>
+            <span class="s1">csv_writer.writerow([</span><span class="s3">&quot;Input Parameters:&quot;</span><span class="s1">, </span><span class="s3">&quot;static_friction_pw&quot;</span><span class="s1">, </span><span class="s3">&quot;static_friction_pp&quot;</span><span class="s1">, </span><span class="s3">&quot;rolling_resistance&quot;</span><span class="s1">,</span>
+                                 <span class="s3">&quot;E_Modul&quot;</span><span class="s1">, </span><span class="s3">&quot;restitution_coefficient_pw&quot;</span><span class="s1">, </span><span class="s3">&quot;restitution_coefficient_pp&quot;</span><span class="s1">, </span><span class="s3">&quot;viscosity&quot;</span><span class="s1">,</span>
+                                 <span class="s3">&quot;coupling&quot;</span><span class="s1">, </span><span class="s3">&quot;rotational speed&quot;</span><span class="s1">, </span><span class="s3">&quot;value of flow&quot;</span><span class="s1">, </span><span class="s3">&quot;diameter&quot;</span><span class="s1">, </span><span class="s3">&quot;timestep&quot;</span><span class="s1">])</span>
+            <span class="s1">csv_writer.writerow(</span>
+                <span class="s1">[input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">0</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">1</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">2</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">3</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">4</span><span class="s1">],</span>
+                 <span class="s1">input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">5</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">6</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">7</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">8</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">9</span><span class="s1">],</span>
+                 <span class="s1">input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">10</span><span class="s1">], input_data[</span><span class="s5">0</span><span class="s1">, </span><span class="s5">11</span><span class="s1">]])</span>
+
+            <span class="s1">csv_writer.writerow([])</span>
+
+            <span class="s1">csv_writer.writerow([output_parameters[i]])</span>
+
+            <span class="s1">csv_writer.writerows(prediction.reshape(-</span><span class="s5">1</span><span class="s1">, </span><span class="s5">1</span><span class="s1">))</span>
+
+    <span class="s1">print(</span><span class="s3">f&quot;Predicted output parameters saved to </span><span class="s4">{</span><span class="s1">save_dir</span><span class="s4">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+<span class="s2">if </span><span class="s1">__name__ == </span><span class="s3">&quot;__main__&quot;</span><span class="s1">:</span>
+    <span class="s1">display_info_panel()</span>
+    <span class="s1">predict_input()</span>
+
+</pre>
+</body>
+</html>

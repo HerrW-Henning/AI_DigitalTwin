@@ -1,0 +1,77 @@
+<html>
+<head>
+<title>2.3_Data_Split.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #1750eb;}
+.s4 { color: #067d17;}
+.s5 { color: #0037a6;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+2.3_Data_Split.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 2_Data_Preprocessing</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : Data_Split</span>
+<span class="s0"># @Software: PyCharm</span>
+
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">shutil</span>
+<span class="s2">import </span><span class="s1">random</span>
+
+
+<span class="s2">def </span><span class="s1">group_files(file_list, group_size=</span><span class="s3">6</span><span class="s1">):</span>
+ 
+    <span class="s2">return </span><span class="s1">[file_list[i:i + group_size] </span><span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">range(</span><span class="s3">0</span><span class="s1">, len(file_list), group_size)]</span>
+
+
+<span class="s2">def </span><span class="s1">split_data_groups_random(grouped_files, train_ratio=</span><span class="s3">0.8</span><span class="s1">):</span>
+
+    <span class="s1">random.shuffle(grouped_files)</span>
+    <span class="s1">total_groups = len(grouped_files)</span>
+    <span class="s1">train_size = int(total_groups * train_ratio)</span>
+
+    <span class="s1">train_groups = grouped_files[:train_size]</span>
+    <span class="s1">test_groups = grouped_files[train_size:]</span>
+
+    <span class="s2">return </span><span class="s1">train_groups, test_groups</span>
+
+
+<span class="s2">def </span><span class="s1">move_files(file_groups, target_directory):</span>
+    <span class="s1">os.makedirs(target_directory, exist_ok=</span><span class="s2">True</span><span class="s1">)</span>
+
+    <span class="s2">for </span><span class="s1">group </span><span class="s2">in </span><span class="s1">file_groups:</span>
+        <span class="s2">for </span><span class="s1">file_path </span><span class="s2">in </span><span class="s1">group:</span>
+            <span class="s1">file_name = os.path.basename(file_path)</span>
+            <span class="s1">target_path = os.path.join(target_directory, file_name)</span>
+            <span class="s1">shutil.copy(file_path, target_path)</span>
+    <span class="s1">print(</span><span class="s4">f&quot;Files moved to </span><span class="s5">{</span><span class="s1">target_directory</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">main(input_directory, train_directory, test_directory, group_size=</span><span class="s3">6</span><span class="s1">, train_ratio=</span><span class="s3">0.8</span><span class="s1">):</span>
+
+    <span class="s1">json_files = [os.path.join(input_directory, f) </span><span class="s2">for </span><span class="s1">f </span><span class="s2">in </span><span class="s1">os.listdir(input_directory) </span><span class="s2">if </span><span class="s1">f.endswith(</span><span class="s4">'.json'</span><span class="s1">)]</span>
+    <span class="s2">assert </span><span class="s1">len(json_files) == </span><span class="s3">582</span><span class="s1">, </span><span class="s4">&quot;总文件数量应该为582个&quot;</span>
+    
+    <span class="s1">grouped_files = group_files(json_files, group_size=group_size)</span>
+    <span class="s1">train_groups, test_groups = split_data_groups_random(grouped_files, train_ratio=train_ratio)</span>
+    <span class="s1">move_files(train_groups, train_directory)</span>
+    <span class="s1">move_files(test_groups, test_directory)</span>
+
+<span class="s1">input_directory = </span><span class="s4">r'D:\Programmierung\Programmierung_fuer_MA\Final\1_Data_Convert\Filtered_Data'</span>
+<span class="s1">train_directory = </span><span class="s4">r'D:\Programmierung\Programmierung_fuer_MA\Final\3_Create_NN\Filtered_Real_Data\Training_Dataset'</span>
+<span class="s1">test_directory = </span><span class="s4">r'D:\Programmierung\Programmierung_fuer_MA\Final\3_Create_NN\Filtered_Real_Data\Test_Dataset'</span>
+
+<span class="s1">main(input_directory, train_directory, test_directory)</span>
+</pre>
+</body>
+</html>

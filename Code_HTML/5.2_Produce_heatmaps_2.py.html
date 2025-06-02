@@ -1,0 +1,109 @@
+<html>
+<head>
+<title>5.2_Produce_heatmaps_2.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #067d17;}
+.s4 { color: #1750eb;}
+.s5 { color: #0037a6;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+5.2_Produce_heatmaps_2.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 5_Prediction_and_Bewertung</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : 5.2_Produce_heatmaps</span>
+<span class="s0"># @Software: PyCharm</span>
+
+
+<span class="s2">import </span><span class="s1">matplotlib.pyplot </span><span class="s2">as </span><span class="s1">plt</span>
+<span class="s2">import </span><span class="s1">seaborn </span><span class="s2">as </span><span class="s1">sns</span>
+<span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">pandas </span><span class="s2">as </span><span class="s1">pd</span>
+<span class="s2">import </span><span class="s1">csv</span>
+<span class="s2">from </span><span class="s1">datetime </span><span class="s2">import </span><span class="s1">datetime</span>
+
+<span class="s2">def </span><span class="s1">plot_heatmap(reshaped_data, file_name, column_name, save_path=</span><span class="s2">None</span><span class="s1">):</span>
+    <span class="s2">for </span><span class="s1">z_layer, z_data </span><span class="s2">in </span><span class="s1">enumerate(reshaped_data):</span>
+        <span class="s1">plt.figure()</span>
+        <span class="s1">sns.heatmap(z_data, cmap=</span><span class="s3">&quot;jet&quot;</span><span class="s1">, cbar_kws={</span><span class="s3">'label'</span><span class="s1">: column_name}, vmin=</span><span class="s4">0</span><span class="s1">)</span>
+        <span class="s0"># plt.title(f'{file_name} - Column: {column_name} - Z-layer {z_layer}')</span>
+        <span class="s0"># plt.xlabel('X-Axis')</span>
+        <span class="s0"># plt.ylabel('Y-Axis')</span>
+        <span class="s1">plt.title(</span><span class="s3">f'Z-layer </span><span class="s5">{</span><span class="s1">z_layer</span><span class="s5">}</span><span class="s3">'</span><span class="s1">)</span>
+        <span class="s1">plt.xticks([])</span>
+        <span class="s1">plt.yticks([])</span>
+
+        <span class="s1">subfolder_path = os.path.join(save_path, column_name)</span>
+        <span class="s1">os.makedirs(subfolder_path, exist_ok=</span><span class="s2">True</span><span class="s1">)</span>
+        <span class="s1">plt.savefig(os.path.join(subfolder_path, </span><span class="s3">f'</span><span class="s5">{</span><span class="s1">column_name</span><span class="s5">}</span><span class="s3">_Z-layer_</span><span class="s5">{</span><span class="s1">z_layer</span><span class="s5">}</span><span class="s3">.png'</span><span class="s1">))</span>
+        <span class="s1">plt.close()</span>
+
+<span class="s1">heatmaps_folder = </span><span class="s3">&quot;heatmaps</span><span class="s5">\\</span><span class="s3">24-11-21 12-16&quot;</span>
+<span class="s1">os.makedirs(heatmaps_folder, exist_ok=</span><span class="s2">True</span><span class="s1">)</span>
+
+<span class="s1">input_csv_folder = </span><span class="s3">'D:</span><span class="s5">\\</span><span class="s3">Programmierung</span><span class="s5">\\</span><span class="s3">Programmierung_fuer_MA</span><span class="s5">\\</span><span class="s3">Final</span><span class="s5">\\</span><span class="s3">5_Prediction_and_Bewertung'</span>
+<span class="s1">current_date = </span><span class="s3">'24-11-21 12-16'</span>
+<span class="s1">output_parameters = [</span>
+    <span class="s3">&quot;number_particles&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_dissipation&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_impact&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_shear&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;velocity_absolute_translational&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;velocity_impact_normal_mean&quot;</span><span class="s1">,</span>
+
+<span class="s1">]</span>
+
+<span class="s1">num_layers = </span><span class="s4">40</span>
+<span class="s1">x_layer = </span><span class="s4">20</span>
+<span class="s1">y_layer = </span><span class="s4">20</span>
+
+
+<span class="s2">for </span><span class="s1">param </span><span class="s2">in </span><span class="s1">output_parameters:</span>
+    <span class="s1">csv_file_path = os.path.join(input_csv_folder, </span><span class="s3">f'predicted_</span><span class="s5">{</span><span class="s1">current_date</span><span class="s5">}</span><span class="s3">'</span><span class="s1">, </span><span class="s3">f'</span><span class="s5">{</span><span class="s1">param</span><span class="s5">}</span><span class="s3">_</span><span class="s5">{</span><span class="s1">current_date</span><span class="s5">}</span><span class="s3">.csv'</span><span class="s1">)</span>
+
+    <span class="s0"># csv_file_path = os.path.join(input_csv_folder, f'pro_Standard_{current_date}', f'{param}_{current_date}.csv')</span>
+    <span class="s0"># df = df.iloc[:, 11:]</span>
+    <span class="s1">df = pd.read_csv(csv_file_path, header=</span><span class="s4">3</span><span class="s1">)</span>
+
+
+    <span class="s1">df.columns = df.columns.str.strip().str.replace(</span><span class="s3">' '</span><span class="s1">, </span><span class="s3">'_'</span><span class="s1">).str.replace(</span><span class="s3">':'</span><span class="s1">, </span><span class="s3">''</span><span class="s1">)</span>
+
+    <span class="s1">file_name = os.path.basename(csv_file_path)</span>
+    <span class="s1">file_name_without_extension = file_name.split(</span><span class="s3">&quot;.csv&quot;</span><span class="s1">)[</span><span class="s4">0</span><span class="s1">]</span>
+
+    <span class="s1">save_path = os.path.join(input_csv_folder, heatmaps_folder, file_name_without_extension)</span>
+
+
+    <span class="s2">for </span><span class="s1">column </span><span class="s2">in </span><span class="s1">df.columns:</span>
+        <span class="s1">data = df[column].astype(float)</span>
+        <span class="s1">num_values = len(data)</span>
+        <span class="s1">val1 = data[</span><span class="s4">0</span><span class="s1">]</span>
+        <span class="s1">print(</span><span class="s3">f&quot;First value of column </span><span class="s5">{</span><span class="s1">column</span><span class="s5">} </span><span class="s3">in file </span><span class="s5">{</span><span class="s1">file_name</span><span class="s5">}</span><span class="s3">: </span><span class="s5">{</span><span class="s1">val1</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+        <span class="s2">if </span><span class="s1">num_values == num_layers * x_layer * y_layer:</span>
+            <span class="s1">print(</span><span class="s3">&quot;The dimensions fit&quot;</span><span class="s1">)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">print(</span><span class="s3">&quot;The dimension of the predicted data doesn´t match the dimensions of the heatmaps&quot;</span><span class="s1">)</span>
+            <span class="s2">continue</span>
+
+        <span class="s1">expected_values = num_layers * x_layer * y_layer</span>
+        <span class="s2">if </span><span class="s1">num_values != expected_values:</span>
+            <span class="s1">print(</span><span class="s3">f&quot;Skipping file </span><span class="s5">{</span><span class="s1">file_name</span><span class="s5">} </span><span class="s3">due to dimension mismatch: expected </span><span class="s5">{</span><span class="s1">expected_values</span><span class="s5">}</span><span class="s3">, got </span><span class="s5">{</span><span class="s1">num_values</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+            <span class="s2">continue</span>
+
+        <span class="s1">reshaped_data = np.array(data).reshape((num_layers, x_layer, y_layer))</span>
+        <span class="s1">plot_heatmap(reshaped_data, file_name_without_extension, column, save_path)</span>
+</pre>
+</body>
+</html>

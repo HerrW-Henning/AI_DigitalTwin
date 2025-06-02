@@ -1,0 +1,82 @@
+<html>
+<head>
+<title>5.3_Bewertung_Zusammen.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #067d17;}
+.s4 { color: #0037a6;}
+.s5 { color: #1750eb;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+5.3_Bewertung_Zusammen.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 5_Prediction_and_Bewertung</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : 5.3_Bewertung_Zusammen</span>
+<span class="s0"># @Software: PyCharm</span>
+
+<span class="s2">import </span><span class="s1">json</span>
+<span class="s2">import </span><span class="s1">pandas </span><span class="s2">as </span><span class="s1">pd</span>
+<span class="s2">import </span><span class="s1">seaborn </span><span class="s2">as </span><span class="s1">sns</span>
+<span class="s2">import </span><span class="s1">matplotlib.pyplot </span><span class="s2">as </span><span class="s1">plt</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np</span>
+
+<span class="s1">real_data_folder = </span><span class="s3">'D:</span><span class="s4">\\</span><span class="s3">Programmierung</span><span class="s4">\\</span><span class="s3">Programmierung_fuer_MA</span><span class="s4">\\</span><span class="s3">Final</span><span class="s4">\\</span><span class="s3">3_Create_NN</span><span class="s4">\\</span><span class="s3">Filtered_Real_Data</span><span class="s4">\\</span><span class="s3">Test_Dataset'</span>
+<span class="s1">prediction_folder = </span><span class="s3">'D:</span><span class="s4">\\</span><span class="s3">Programmierung</span><span class="s4">\\</span><span class="s3">Programmierung_fuer_MA</span><span class="s4">\\</span><span class="s3">Final</span><span class="s4">\\</span><span class="s3">5_Prediction_and_Bewertung'</span>
+<span class="s1">prediction_suffix = </span><span class="s3">'predicted_24-11-20 18-43'</span>
+<span class="s1">predicted_label = </span><span class="s3">'Prediction'</span>
+
+<span class="s1">file_prefixes = [</span>
+    <span class="s3">&quot;number_particles&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_dissipation&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_impact&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_shear&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;velocity_absolute_translational&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;velocity_impact_normal_mean&quot;</span>
+    <span class="s1">]</span>
+
+<span class="s2">for </span><span class="s1">prefix </span><span class="s2">in </span><span class="s1">file_prefixes:</span>
+    <span class="s1">real_file_path = os.path.join(real_data_folder, </span><span class="s3">f'Standart_0.50_</span><span class="s4">{</span><span class="s1">prefix</span><span class="s4">}</span><span class="s3">.json'</span><span class="s1">)</span>
+    <span class="s2">with </span><span class="s1">open(real_file_path, </span><span class="s3">'r'</span><span class="s1">) </span><span class="s2">as </span><span class="s1">f:</span>
+        <span class="s1">real_data = json.load(f)</span>
+
+    <span class="s1">real_values = pd.DataFrame(real_data[</span><span class="s5">0</span><span class="s1">][</span><span class="s3">'data'</span><span class="s1">])</span>
+    <span class="s1">real_values_flat = np.concatenate(real_values[prefix].values)</span>
+
+    <span class="s1">predicted_file = os.path.join(prediction_folder, prediction_suffix,</span>
+                                  <span class="s3">f&quot;</span><span class="s4">{</span><span class="s1">prefix</span><span class="s4">}</span><span class="s3">_</span><span class="s4">{</span><span class="s1">prediction_suffix.split(</span><span class="s3">'_'</span><span class="s1">)[-</span><span class="s5">1</span><span class="s1">]</span><span class="s4">}</span><span class="s3">.csv&quot;</span><span class="s1">)</span>
+    <span class="s1">predicted_data = pd.read_csv(predicted_file, skiprows=</span><span class="s5">4</span><span class="s1">)</span>
+    <span class="s1">predicted_values = pd.to_numeric(predicted_data[predicted_data.columns[-</span><span class="s5">1</span><span class="s1">]], errors=</span><span class="s3">'coerce'</span><span class="s1">).dropna()</span>
+
+    <span class="s1">plt.figure(figsize=(</span><span class="s5">10</span><span class="s1">, </span><span class="s5">6</span><span class="s1">))</span>
+    <span class="s1">sns.kdeplot(real_values_flat, fill=</span><span class="s2">False</span><span class="s1">, label=</span><span class="s3">&quot;Real Data&quot;</span><span class="s1">)</span>
+    <span class="s1">sns.kdeplot(predicted_values, fill=</span><span class="s2">False</span><span class="s1">, label=predicted_label)</span>
+    <span class="s1">plt.title(</span><span class="s3">f'Density Distribution of </span><span class="s4">{</span><span class="s1">prefix</span><span class="s4">}</span><span class="s3">'</span><span class="s1">)</span>
+    <span class="s1">plt.xlabel(prefix)</span>
+    <span class="s1">plt.ylabel(</span><span class="s3">'Density'</span><span class="s1">)</span>
+    <span class="s1">plt.legend()</span>
+    <span class="s1">plt.show()</span>
+
+    <span class="s1">plt.figure(figsize=(</span><span class="s5">10</span><span class="s1">, </span><span class="s5">6</span><span class="s1">))</span>
+    <span class="s1">sns.ecdfplot(real_values_flat, label=</span><span class="s3">&quot;Real Data&quot;</span><span class="s1">)</span>
+    <span class="s1">sns.ecdfplot(predicted_values, label=predicted_label)</span>
+    <span class="s1">plt.title(</span><span class="s3">f'Cumulative Distribution of </span><span class="s4">{</span><span class="s1">prefix</span><span class="s4">}</span><span class="s3">'</span><span class="s1">)</span>
+    <span class="s1">plt.xlabel(prefix)</span>
+    <span class="s1">plt.ylabel(</span><span class="s3">'Cumulative Probability'</span><span class="s1">)</span>
+    <span class="s1">plt.legend()</span>
+    <span class="s1">plt.show()</span>
+
+
+</pre>
+</body>
+</html>

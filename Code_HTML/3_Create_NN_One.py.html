@@ -1,0 +1,174 @@
+<html>
+<head>
+<title>3_Create_NN_One.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #067d17;}
+.s4 { color: #1750eb;}
+.s5 { color: #0037a6;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+3_Create_NN_One.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 3_Create_NN</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : 3_Create_NN_One</span>
+<span class="s0"># @Software: PyCharm</span>
+
+<span class="s2">import </span><span class="s1">json</span>
+<span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">pandas </span><span class="s2">as </span><span class="s1">pd</span>
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">import </span><span class="s1">tensorflow </span><span class="s2">as </span><span class="s1">tf</span>
+<span class="s2">import </span><span class="s1">autokeras </span><span class="s2">as </span><span class="s1">ak</span>
+<span class="s2">from </span><span class="s1">sklearn.model_selection </span><span class="s2">import </span><span class="s1">train_test_split</span>
+<span class="s2">from </span><span class="s1">tensorflow </span><span class="s2">import </span><span class="s1">keras</span>
+<span class="s2">from </span><span class="s1">tensorflow.keras.callbacks </span><span class="s2">import </span><span class="s1">Callback, EarlyStopping</span>
+<span class="s2">from </span><span class="s1">tensorflow.keras.losses </span><span class="s2">import </span><span class="s1">Huber</span>
+
+<span class="s1">output_parameters = [</span>
+    <span class="s3">&quot;number_particles&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_dissipation&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_impact&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;power_shear&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;velocity_absolute_translational&quot;</span><span class="s1">,</span>
+    <span class="s3">&quot;velocity_impact_normal_mean&quot;</span>
+<span class="s1">]</span>
+
+<span class="s2">def </span><span class="s1">load_data(file_paths, param_name):</span>
+    <span class="s1">features_list = []</span>
+    <span class="s1">targets_list = []</span>
+
+    <span class="s2">for </span><span class="s1">file_path </span><span class="s2">in </span><span class="s1">file_paths:</span>
+        <span class="s2">with </span><span class="s1">open(file_path, </span><span class="s3">'r'</span><span class="s1">) </span><span class="s2">as </span><span class="s1">file:</span>
+            <span class="s1">json_data = json.load(file)</span>
+
+        <span class="s2">if </span><span class="s1">isinstance(json_data, list) </span><span class="s2">and </span><span class="s1">len(json_data) &gt; </span><span class="s4">0</span><span class="s1">:</span>
+            <span class="s1">df = pd.json_normalize(json_data, </span><span class="s3">'data'</span><span class="s1">, sep=</span><span class="s3">'_'</span><span class="s1">)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s3">&quot;Invalid JSON format. Expected a 'data' key with list of dictionaries&quot;</span><span class="s1">)</span>
+
+        <span class="s1">feature_cols = [</span>
+            <span class="s3">&quot;static friction p-w&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;static friction p-p&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;rolling resistance&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;E Modul&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;restitution coefficient p-w&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;restitution coefficient p-p&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;viscosity&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;coupling&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;rotational speed&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;value of flow&quot;</span><span class="s1">,</span>
+            <span class="s3">&quot;diameter&quot;</span><span class="s1">,</span>
+        <span class="s1">]</span>
+
+        <span class="s1">X = df[feature_cols].to_numpy()</span>
+        <span class="s1">timestep = float(re.search(</span><span class="s3">r'_(\d.\d+)_'</span><span class="s1">, file_path).group(</span><span class="s4">1</span><span class="s1">))</span>
+        <span class="s1">print(</span><span class="s3">f&quot;Extracted timestep: </span><span class="s5">{</span><span class="s1">timestep</span><span class="s5">} </span><span class="s3">from file: </span><span class="s5">{</span><span class="s1">file_path</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+        <span class="s1">X = np.concatenate((X, np.full((X.shape[</span><span class="s4">0</span><span class="s1">], </span><span class="s4">1</span><span class="s1">), timestep)), axis=</span><span class="s4">1</span><span class="s1">)</span>
+        <span class="s1">features_list.append(X)</span>
+
+        <span class="s2">if </span><span class="s1">param_name </span><span class="s2">in </span><span class="s1">df.columns:</span>
+            <span class="s1">y = np.array([item </span><span class="s2">for </span><span class="s1">sublist </span><span class="s2">in </span><span class="s1">df[param_name] </span><span class="s2">for </span><span class="s1">item </span><span class="s2">in </span><span class="s1">sublist]).flatten().reshape(-</span><span class="s4">1</span><span class="s1">, </span><span class="s4">16000</span><span class="s1">)</span>
+            <span class="s1">targets_list.append(y)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s3">f&quot;Parameter '</span><span class="s5">{</span><span class="s1">param_name</span><span class="s5">}</span><span class="s3">' not found in the data.&quot;</span><span class="s1">)</span>
+
+    <span class="s1">features = np.concatenate(features_list, axis=</span><span class="s4">0</span><span class="s1">)</span>
+    <span class="s1">targets = np.concatenate(targets_list, axis=</span><span class="s4">0</span><span class="s1">).reshape(-</span><span class="s4">1</span><span class="s1">, </span><span class="s4">16000</span><span class="s1">)</span>
+
+    <span class="s1">print(</span><span class="s3">f&quot;X shape: </span><span class="s5">{</span><span class="s1">features.shape</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s3">f&quot;y shape: </span><span class="s5">{</span><span class="s1">targets.shape</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+    <span class="s2">return </span><span class="s1">features, targets</span>
+
+
+<span class="s2">def </span><span class="s1">load_relevant_data(folder_path, param_name):</span>
+    <span class="s1">file_paths = sorted([os.path.join(folder_path, f) </span><span class="s2">for </span><span class="s1">f </span><span class="s2">in </span><span class="s1">os.listdir(folder_path) </span><span class="s2">if </span><span class="s1">f.endswith(</span><span class="s3">&quot;.json&quot;</span><span class="s1">) </span><span class="s2">and </span><span class="s1">param_name </span><span class="s2">in </span><span class="s1">f])</span>
+    <span class="s2">return </span><span class="s1">load_data(file_paths, param_name)</span>
+
+<span class="s2">class </span><span class="s1">GlobalBestEpochCallback(Callback):</span>
+    <span class="s2">def </span><span class="s1">__init__(self):</span>
+        <span class="s1">super(GlobalBestEpochCallback, self).__init__()</span>
+        <span class="s1">self.global_best_val_loss = float(</span><span class="s3">'inf'</span><span class="s1">)</span>
+        <span class="s1">self.global_best_epoch = </span><span class="s4">0</span>
+
+    <span class="s2">def </span><span class="s1">on_epoch_end(self, epoch, logs=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s1">val_loss = logs.get(</span><span class="s3">'val_loss'</span><span class="s1">)</span>
+        <span class="s2">if </span><span class="s1">val_loss </span><span class="s2">is not None and </span><span class="s1">val_loss &lt; self.global_best_val_loss:</span>
+            <span class="s1">self.global_best_val_loss = val_loss</span>
+            <span class="s1">self.global_best_epoch = epoch + </span><span class="s4">1</span>
+            <span class="s1">print(</span><span class="s3">f&quot;New overall best model found at epoch </span><span class="s5">{</span><span class="s1">self.global_best_epoch</span><span class="s5">} </span><span class="s3">with val_loss: </span><span class="s5">{</span><span class="s1">self.global_best_val_loss</span><span class="s5">:</span><span class="s3">.4f</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+    <span class="s2">def </span><span class="s1">on_train_end(self, logs=</span><span class="s2">None</span><span class="s1">):</span>
+        <span class="s1">print(</span><span class="s3">f&quot;Final best model obtained at epoch </span><span class="s5">{</span><span class="s1">self.global_best_epoch</span><span class="s5">} </span><span class="s3">with val_loss: </span><span class="s5">{</span><span class="s1">self.global_best_val_loss</span><span class="s5">:</span><span class="s3">.4f</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">generate_single_model(X_train, y_train, X_test, y_test, output_param, max_trials, epochs):</span>
+    <span class="s1">script_dir = os.path.dirname(os.path.abspath(__file__))</span>
+    <span class="s1">save_path = os.path.join(script_dir, </span><span class="s3">f'AK_</span><span class="s5">{</span><span class="s1">output_param</span><span class="s5">}</span><span class="s3">_Real_mse'</span><span class="s1">)</span>
+    <span class="s1">os.makedirs(save_path, exist_ok=</span><span class="s2">True</span><span class="s1">)</span>
+
+    <span class="s1">input_node = ak.StructuredDataInput()</span>
+    <span class="s1">output_node = ak.RegressionHead(metrics=[</span><span class="s3">&quot;mse&quot;</span><span class="s1">], loss=</span><span class="s3">&quot;mse&quot;</span><span class="s1">)</span>
+    <span class="s0"># output_node = ak.RegressionHead(metrics=[&quot;mae&quot;, &quot;mse&quot;], loss=Huber(delta=delta_value))</span>
+
+    <span class="s1">auto_model = ak.AutoModel(</span>
+        <span class="s1">inputs=input_node,</span>
+        <span class="s1">outputs=output_node,</span>
+        <span class="s1">max_trials=max_trials,</span>
+        <span class="s1">directory=save_path,</span>
+        <span class="s1">project_name=</span><span class="s3">f'structured_data_regressor'</span>
+    <span class="s1">)</span>
+
+    <span class="s1">batch_size = </span><span class="s4">32</span>
+    <span class="s1">train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(batch_size)</span>
+    <span class="s1">test_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(batch_size)</span>
+
+
+    <span class="s1">auto_model.fit(</span>
+        <span class="s1">train_dataset,</span>
+        <span class="s1">validation_data=test_dataset,</span>
+        <span class="s1">epochs=epochs,</span>
+        <span class="s1">callbacks=[GlobalBestEpochCallback()]</span>
+    <span class="s1">)</span>
+
+    <span class="s1">model = auto_model.export_model()</span>
+    <span class="s1">model_path = os.path.join(save_path, </span><span class="s3">f'ak_best_model'</span><span class="s1">)</span>
+    <span class="s1">model.save(model_path, save_format=</span><span class="s3">'tf'</span><span class="s1">, include_optimizer=</span><span class="s2">True</span><span class="s1">)</span>
+
+    <span class="s2">if </span><span class="s1">os.path.exists(model_path):</span>
+        <span class="s1">loaded_model = keras.models.load_model(model_path)</span>
+        <span class="s1">loaded_model.summary()</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">print(</span><span class="s3">f&quot;Error: Model file not found at </span><span class="s5">{</span><span class="s1">model_path</span><span class="s5">}</span><span class="s3">&quot;</span><span class="s1">)</span>
+
+
+<span class="s2">if </span><span class="s1">__name__ == </span><span class="s3">'__main__'</span><span class="s1">:</span>
+
+    <span class="s1">param_to_train = </span><span class="s3">&quot;number_particles&quot;</span>
+    <span class="s1">max_trials = </span><span class="s4">50</span>
+    <span class="s1">epochs = </span><span class="s4">200</span>
+    <span class="s1">delta_value = </span><span class="s4">0.5</span>
+
+    <span class="s1">script_dir = os.path.dirname(os.path.abspath(__file__))</span>
+
+    <span class="s1">train_folder = os.path.join(script_dir, </span><span class="s3">'Filtered_Real_Data</span><span class="s5">\\</span><span class="s3">Training_Dataset'</span><span class="s1">)</span>
+    <span class="s1">test_folder = os.path.join(script_dir, </span><span class="s3">'Filtered_Real_Data</span><span class="s5">\\</span><span class="s3">Test_Dataset'</span><span class="s1">)</span>
+    <span class="s1">X_train, y_train = load_relevant_data(train_folder, param_to_train)</span>
+    <span class="s1">X_test, y_test = load_relevant_data(test_folder, param_to_train)</span>
+
+    <span class="s1">generate_single_model(X_train, y_train, X_test, y_test, param_to_train, max_trials, epochs)</span>
+</pre>
+</body>
+</html>

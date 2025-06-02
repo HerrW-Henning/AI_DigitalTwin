@@ -1,0 +1,300 @@
+<html>
+<head>
+<title>4_Optimize_mit_GRL.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #8c8c8c; font-style: italic;}
+.s1 { color: #080808;}
+.s2 { color: #0033b3;}
+.s3 { color: #1750eb;}
+.s4 { color: #067d17;}
+.s5 { color: #0037a6;}
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+4_Optimize_mit_GRL.py</font>
+</center></td></tr></table>
+<pre><span class="s0"># ！/Programmierung/Anaconda/envs python</span>
+<span class="s0"># @File    : 4_Optimization</span>
+<span class="s0"># -*- coding: utf-8 -*-</span>
+<span class="s0"># @Author  : Shun</span>
+<span class="s0"># @File    : 4_Optimize_mit_GRL</span>
+<span class="s0"># @Software: PyCharm</span>
+
+<span class="s2">import </span><span class="s1">json</span>
+<span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np</span>
+<span class="s2">import </span><span class="s1">os</span>
+<span class="s2">import </span><span class="s1">random</span>
+<span class="s2">import </span><span class="s1">pandas </span><span class="s2">as </span><span class="s1">pd</span>
+<span class="s2">import </span><span class="s1">tensorflow </span><span class="s2">as </span><span class="s1">tf</span>
+<span class="s2">from </span><span class="s1">tensorflow </span><span class="s2">import </span><span class="s1">keras</span>
+<span class="s2">import </span><span class="s1">matplotlib.pyplot </span><span class="s2">as </span><span class="s1">plt</span>
+<span class="s2">import </span><span class="s1">re</span>
+<span class="s2">import </span><span class="s1">autokeras </span><span class="s2">as </span><span class="s1">ak</span>
+<span class="s2">import </span><span class="s1">gc</span>
+<span class="s2">import </span><span class="s1">copy</span>
+<span class="s2">from </span><span class="s1">tensorflow.keras.backend </span><span class="s2">import </span><span class="s1">clear_session</span>
+
+<span class="s1">GENS = </span><span class="s3">50</span>
+<span class="s1">POP_SIZE = </span><span class="s3">12</span>
+<span class="s1">BATCH_SIZE = </span><span class="s3">16</span>
+<span class="s1">CROPB = </span><span class="s3">0.8</span>
+<span class="s1">MUTPB = </span><span class="s3">0.1</span>
+<span class="s1">EPOCHS = </span><span class="s3">20</span>
+<span class="s1">PERCENTILE = </span><span class="s3">0.1</span>
+
+<span class="s1">output_parameters = [</span>
+    <span class="s4">&quot;power_dissipation&quot;</span><span class="s1">,</span>
+    <span class="s4">&quot;power_impact&quot;</span><span class="s1">,</span>
+    <span class="s4">&quot;power_shear&quot;</span><span class="s1">,</span>
+    <span class="s4">&quot;velocity_absolute_translational&quot;</span><span class="s1">,</span>
+    <span class="s4">&quot;velocity_impact_normal_mean&quot;</span><span class="s1">,</span>
+<span class="s1">]</span>
+
+<span class="s2">def </span><span class="s1">load_data(file_paths, param_name):</span>
+    <span class="s1">features_list = []</span>
+    <span class="s1">targets_list = []</span>
+
+    <span class="s2">for </span><span class="s1">file_path </span><span class="s2">in </span><span class="s1">file_paths:</span>
+
+        <span class="s2">with </span><span class="s1">open(file_path, </span><span class="s4">'r'</span><span class="s1">) </span><span class="s2">as </span><span class="s1">file:</span>
+            <span class="s1">json_data = json.load(file)</span>
+
+        <span class="s2">if </span><span class="s1">isinstance(json_data, list) </span><span class="s2">and </span><span class="s1">len(json_data) &gt; </span><span class="s3">0</span><span class="s1">:</span>
+            <span class="s1">df = pd.json_normalize(json_data, </span><span class="s4">'data'</span><span class="s1">, sep=</span><span class="s4">'_'</span><span class="s1">)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s4">&quot;Invalid JSON format. Expected a 'data' key with list of dictionaries&quot;</span><span class="s1">)</span>
+
+        <span class="s1">feature_cols = [</span>
+            <span class="s4">&quot;static friction p-w&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;static friction p-p&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;rolling resistance&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;E Modul&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;restitution coefficient p-w&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;restitution coefficient p-p&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;viscosity&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;coupling&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;rotational speed&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;value of flow&quot;</span><span class="s1">,</span>
+            <span class="s4">&quot;diameter&quot;</span><span class="s1">,</span>
+        <span class="s1">]</span>
+
+        <span class="s1">X = df[feature_cols].to_numpy()</span>
+        <span class="s1">timestep = float(re.search(</span><span class="s4">r'_(\d.\d+)_'</span><span class="s1">, file_path).group(</span><span class="s3">1</span><span class="s1">))</span>
+        <span class="s1">print(</span><span class="s4">f&quot;Extracted timestep: </span><span class="s5">{</span><span class="s1">timestep</span><span class="s5">} </span><span class="s4">from file: </span><span class="s5">{</span><span class="s1">file_path</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+        <span class="s1">X = np.concatenate((X, np.full((X.shape[</span><span class="s3">0</span><span class="s1">], </span><span class="s3">1</span><span class="s1">), timestep)), axis=</span><span class="s3">1</span><span class="s1">)</span>
+        <span class="s1">features_list.append(X)</span>
+
+        <span class="s2">if </span><span class="s1">param_name </span><span class="s2">in </span><span class="s1">df.columns:</span>
+            <span class="s1">y = np.array([item </span><span class="s2">for </span><span class="s1">sublist </span><span class="s2">in </span><span class="s1">df[param_name] </span><span class="s2">for </span><span class="s1">item </span><span class="s2">in </span><span class="s1">sublist]).flatten().reshape(-</span><span class="s3">1</span><span class="s1">, </span><span class="s3">16000</span><span class="s1">)</span>
+            <span class="s1">targets_list.append(y)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s2">raise </span><span class="s1">ValueError(</span><span class="s4">f&quot;Parameter '</span><span class="s5">{</span><span class="s1">param_name</span><span class="s5">}</span><span class="s4">' not found in the data.&quot;</span><span class="s1">)</span>
+
+    <span class="s1">features = np.concatenate(features_list, axis=</span><span class="s3">0</span><span class="s1">)</span>
+    <span class="s1">targets = np.concatenate(targets_list, axis=</span><span class="s3">0</span><span class="s1">).reshape(-</span><span class="s3">1</span><span class="s1">, </span><span class="s3">16000</span><span class="s1">)</span>
+
+    <span class="s1">print(</span><span class="s4">f&quot;X shape: </span><span class="s5">{</span><span class="s1">features.shape</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s4">f&quot;y shape: </span><span class="s5">{</span><span class="s1">targets.shape</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+    <span class="s2">return </span><span class="s1">features, targets</span>
+
+<span class="s2">def </span><span class="s1">load_relevant_data(folder_path, param_name):</span>
+    <span class="s1">file_paths = sorted([os.path.join(folder_path, f) </span><span class="s2">for </span><span class="s1">f </span><span class="s2">in </span><span class="s1">os.listdir(folder_path) </span><span class="s2">if </span><span class="s1">f.endswith(</span><span class="s4">&quot;.json&quot;</span><span class="s1">) </span><span class="s2">and </span><span class="s1">param_name </span><span class="s2">in </span><span class="s1">f])</span>
+
+    <span class="s2">return </span><span class="s1">load_data(file_paths, param_name)</span>
+
+<span class="s1">train_folder = </span><span class="s4">'D:</span><span class="s5">\\</span><span class="s4">Programmierung</span><span class="s5">\\</span><span class="s4">Programmierung_fuer_MA</span><span class="s5">\\</span><span class="s4">Final</span><span class="s5">\\</span><span class="s4">3_Create_NN</span><span class="s5">\\</span><span class="s4">Filtered_Real_Data</span><span class="s5">\\</span><span class="s4">Training_Dataset'</span>
+<span class="s1">test_folder = </span><span class="s4">'D:</span><span class="s5">\\</span><span class="s4">Programmierung</span><span class="s5">\\</span><span class="s4">Programmierung_fuer_MA</span><span class="s5">\\</span><span class="s4">Final</span><span class="s5">\\</span><span class="s4">3_Create_NN</span><span class="s5">\\</span><span class="s4">Filtered_Real_Data</span><span class="s5">\\</span><span class="s4">Test_Dataset'</span>
+<span class="s1">param_to_train = </span><span class="s4">&quot;velocity_absolute_translational&quot;</span>
+
+<span class="s1">base_path = </span><span class="s4">'D:</span><span class="s5">\\</span><span class="s4">Programmierung</span><span class="s5">\\</span><span class="s4">Programmierung_fuer_MA</span><span class="s5">\\</span><span class="s4">Final</span><span class="s5">\\</span><span class="s4">4_Optimization'</span>
+<span class="s1">save_path = os.path.join(base_path, </span><span class="s4">f'Opimized_model_</span><span class="s5">{</span><span class="s1">param_to_train</span><span class="s5">}</span><span class="s4">'</span><span class="s1">)</span>
+
+<span class="s1">X_train, y_train = load_relevant_data(train_folder, param_to_train)</span>
+<span class="s1">X_test, y_test = load_relevant_data(test_folder, param_to_train)</span>
+
+<span class="s1">batch_size = BATCH_SIZE</span>
+<span class="s1">train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(batch_size)</span>
+<span class="s1">test_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(batch_size)</span>
+
+
+<span class="s2">def </span><span class="s1">load_existing_model():</span>
+    <span class="s1">model_path = (</span><span class="s4">'D:</span><span class="s5">\\</span><span class="s4">Programmierung</span><span class="s5">\\</span><span class="s4">Programmierung_fuer_MA</span><span class="s5">\\</span><span class="s4">Final</span><span class="s5">\\</span><span class="s4">3_Create_NN'</span>
+                  <span class="s4">'</span><span class="s5">\\</span><span class="s4">AK_velocity_absolute_translational_Real_mse</span><span class="s5">\\</span><span class="s4">ak_best_model'</span><span class="s1">)</span>
+
+    <span class="s0"># model_path = os.path.join(base_path, f'Opimized_model_{param_to_train}_GRL_1')</span>
+
+    <span class="s2">if </span><span class="s1">os.path.exists(model_path):</span>
+        <span class="s1">model = tf.keras.models.load_model(model_path, custom_objects=ak.CUSTOM_OBJECTS)</span>
+        <span class="s1">model.compile(optimizer=model.optimizer, loss=</span><span class="s4">&quot;mse&quot;</span><span class="s1">, metrics=[</span><span class="s4">&quot;mse&quot;</span><span class="s1">])</span>
+        <span class="s1">model.summary()</span>
+        <span class="s2">return </span><span class="s1">model</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s2">raise </span><span class="s1">FileNotFoundError(</span><span class="s4">f&quot;Model not found：</span><span class="s5">{</span><span class="s1">model_path</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+
+<span class="s2">def </span><span class="s1">create_individual(model):</span>
+    <span class="s1">weights = model.get_weights()</span>
+    <span class="s1">flat_weights = np.concatenate([w.flatten() </span><span class="s2">for </span><span class="s1">w </span><span class="s2">in </span><span class="s1">weights])</span>
+    <span class="s2">return </span><span class="s1">flat_weights</span>
+
+<span class="s2">def </span><span class="s1">create_population(pop_size, model):</span>
+    <span class="s2">return </span><span class="s1">[create_individual(model) </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(pop_size)]</span>
+
+<span class="s2">def </span><span class="s1">layer_crossover(model, parent1, parent2, crossover_point_layer=</span><span class="s3">2</span><span class="s1">):</span>
+    <span class="s1">weight_shapes = [w.shape </span><span class="s2">for </span><span class="s1">w </span><span class="s2">in </span><span class="s1">model.get_weights()]</span>
+    <span class="s1">split_indices = np.cumsum([np.prod(shape) </span><span class="s2">for </span><span class="s1">shape </span><span class="s2">in </span><span class="s1">weight_shapes], dtype=int)[:-</span><span class="s3">1</span><span class="s1">]</span>
+
+    <span class="s1">parent1_layers = np.split(np.array(parent1), split_indices)</span>
+    <span class="s1">parent2_layers = np.split(np.array(parent2), split_indices)</span>
+
+    <span class="s1">offspring1_layers = parent1_layers[:crossover_point_layer] + parent2_layers[crossover_point_layer:]</span>
+    <span class="s1">offspring2_layers = parent2_layers[:crossover_point_layer] + parent1_layers[crossover_point_layer:]</span>
+
+    <span class="s1">offspring1 = np.concatenate([layer.flatten() </span><span class="s2">for </span><span class="s1">layer </span><span class="s2">in </span><span class="s1">offspring1_layers])</span>
+    <span class="s1">offspring2 = np.concatenate([layer.flatten() </span><span class="s2">for </span><span class="s1">layer </span><span class="s2">in </span><span class="s1">offspring2_layers])</span>
+
+    <span class="s2">return </span><span class="s1">offspring1, offspring2</span>
+
+<span class="s2">def </span><span class="s1">mutate_weights(individual, percentage=PERCENTILE):</span>
+    <span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">range(len(individual)):</span>
+
+        <span class="s2">if </span><span class="s1">isinstance(individual[i], (int, float)) </span><span class="s2">and </span><span class="s1">random.random() &lt; MUTPB:</span>
+            <span class="s1">deviation = individual[i] * percentage * random.uniform(-</span><span class="s3">1</span><span class="s1">, </span><span class="s3">1</span><span class="s1">)</span>
+            <span class="s1">individual[i] += deviation</span>
+    <span class="s2">return </span><span class="s1">individual</span>
+
+<span class="s2">def </span><span class="s1">evaluate_individual(individual, model):</span>
+    <span class="s1">weight_shapes = [w.shape </span><span class="s2">for </span><span class="s1">w </span><span class="s2">in </span><span class="s1">model.get_weights()]</span>
+    <span class="s1">split_indices = np.cumsum([np.prod(shape) </span><span class="s2">for </span><span class="s1">shape </span><span class="s2">in </span><span class="s1">weight_shapes], dtype=int)[:-</span><span class="s3">1</span><span class="s1">]</span>
+    <span class="s1">new_weights = np.split(np.array(individual), split_indices)</span>
+    <span class="s1">reshaped_weights = [w.reshape(shape) </span><span class="s2">for </span><span class="s1">w, shape </span><span class="s2">in </span><span class="s1">zip(new_weights, weight_shapes)]</span>
+    <span class="s1">model.set_weights(reshaped_weights)</span>
+
+    <span class="s1">loss = model.evaluate(test_dataset, verbose=</span><span class="s3">0</span><span class="s1">)</span>
+
+    <span class="s2">return </span><span class="s1">loss[</span><span class="s3">0</span><span class="s1">]</span>
+
+<span class="s2">def </span><span class="s1">train_individual(individual, model):</span>
+    <span class="s1">weight_shapes = [w.shape </span><span class="s2">for </span><span class="s1">w </span><span class="s2">in </span><span class="s1">model.get_weights()]</span>
+    <span class="s1">split_indices = np.cumsum([np.prod(shape) </span><span class="s2">for </span><span class="s1">shape </span><span class="s2">in </span><span class="s1">weight_shapes], dtype=int)[:-</span><span class="s3">1</span><span class="s1">]</span>
+    <span class="s1">new_weights = np.split(np.array(individual), split_indices)</span>
+    <span class="s1">reshaped_weights = [w.reshape(shape) </span><span class="s2">for </span><span class="s1">w, shape </span><span class="s2">in </span><span class="s1">zip(new_weights, weight_shapes)]</span>
+    <span class="s1">model.set_weights(reshaped_weights)</span>
+
+    <span class="s1">model.fit(train_dataset, epochs=EPOCHS, validation_data=test_dataset, verbose=</span><span class="s3">0</span><span class="s1">)</span>
+
+    <span class="s1">trained_weights = model.get_weights()</span>
+    <span class="s1">trained_individual = np.concatenate([w.flatten() </span><span class="s2">for </span><span class="s1">w </span><span class="s2">in </span><span class="s1">trained_weights])</span>
+
+    <span class="s2">return </span><span class="s1">trained_individual</span>
+
+<span class="s2">def </span><span class="s1">good_bad_mutation(individual, original_loss, model):</span>
+    <span class="s1">original_individual = copy.deepcopy(individual)</span>
+
+    <span class="s1">mutated_individual = mutate_weights(individual)</span>
+    <span class="s1">mutated_loss = evaluate_individual(mutated_individual, model)</span>
+
+    <span class="s2">if </span><span class="s1">mutated_loss &lt; original_loss:</span>
+        <span class="s1">print(</span><span class="s4">f&quot;Good mutation: Loss improved from </span><span class="s5">{</span><span class="s1">original_loss</span><span class="s5">} </span><span class="s4">to </span><span class="s5">{</span><span class="s1">mutated_loss</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+        <span class="s2">return </span><span class="s1">mutated_individual, mutated_loss</span>
+    <span class="s2">else</span><span class="s1">:</span>
+        <span class="s1">print(</span><span class="s4">f&quot;Bad mutation: Loss worsened from </span><span class="s5">{</span><span class="s1">original_loss</span><span class="s5">} </span><span class="s4">to </span><span class="s5">{</span><span class="s1">mutated_loss</span><span class="s5">}</span><span class="s4">. Reverting mutation.&quot;</span><span class="s1">)</span>
+
+        <span class="s2">return </span><span class="s1">original_individual, original_loss</span>
+
+
+<span class="s2">def </span><span class="s1">select_population(population, fitnesses, model, num_best=</span><span class="s3">2</span><span class="s1">):</span>
+    <span class="s1">sorted_indices = np.argsort(np.array(fitnesses, dtype=float)).astype(int)</span>
+
+    <span class="s1">print(</span><span class="s4">&quot;fitnesses:&quot;</span><span class="s1">, fitnesses)</span>
+
+    <span class="s1">best_individuals = [population[i] </span><span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">sorted_indices[:num_best]]</span>
+    <span class="s1">new_population = []</span>
+
+    <span class="s2">for </span><span class="s1">ind </span><span class="s2">in </span><span class="s1">best_individuals * (len(population) // num_best):</span>
+        <span class="s1">trained_individual = train_individual(ind, model)</span>
+        <span class="s1">new_population.append(trained_individual)</span>
+
+    <span class="s2">return </span><span class="s1">new_population</span>
+
+
+<span class="s2">def </span><span class="s1">GRL_optimization(num_generations, pop_size):</span>
+    <span class="s1">model = load_existing_model()</span>
+    <span class="s1">population = create_population(pop_size, model)</span>
+    <span class="s1">best_loss_per_generation = []</span>
+
+    <span class="s1">previous_best_loss = float(</span><span class="s4">'inf'</span><span class="s1">)</span>
+    <span class="s1">previous_best_individual = </span><span class="s2">None</span>
+
+    <span class="s2">for </span><span class="s1">gen </span><span class="s2">in </span><span class="s1">range(num_generations):</span>
+
+        <span class="s1">fitnesses = [evaluate_individual(ind, model) </span><span class="s2">for </span><span class="s1">ind </span><span class="s2">in </span><span class="s1">population]</span>
+        <span class="s1">best_loss = min(fitnesses)</span>
+        <span class="s1">best_individual = copy.deepcopy(population[np.argmin(fitnesses)])</span>
+
+        <span class="s1">print(</span><span class="s4">f&quot;Generation </span><span class="s5">{</span><span class="s1">gen + </span><span class="s3">1</span><span class="s5">}</span><span class="s4">: Best Loss = </span><span class="s5">{</span><span class="s1">best_loss</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+        <span class="s2">if </span><span class="s1">best_loss &gt; previous_best_loss:</span>
+            <span class="s1">print(</span><span class="s4">&quot;Warning: New generation's best loss is worse. Replacing with previous best individual.&quot;</span><span class="s1">)</span>
+            <span class="s1">population = [copy.deepcopy(previous_best_individual) </span><span class="s2">for </span><span class="s1">_ </span><span class="s2">in </span><span class="s1">range(pop_size)]</span>
+            <span class="s1">best_loss = previous_best_loss</span>
+            <span class="s1">best_loss_per_generation.append(best_loss)</span>
+        <span class="s2">else</span><span class="s1">:</span>
+            <span class="s1">previous_best_loss = best_loss</span>
+            <span class="s1">previous_best_individual = copy.deepcopy(best_individual)</span>
+            <span class="s1">best_loss_per_generation.append(best_loss)</span>
+
+            <span class="s1">population = select_population(population, fitnesses, model)</span>
+
+        <span class="s1">new_population = []</span>
+        <span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">range(</span><span class="s3">0</span><span class="s1">, pop_size, </span><span class="s3">2</span><span class="s1">):</span>
+            <span class="s2">if </span><span class="s1">i + </span><span class="s3">1 </span><span class="s1">&lt; pop_size:</span>
+                <span class="s2">if </span><span class="s1">random.random() &lt; CROPB:</span>
+                    <span class="s1">child1, child2 = layer_crossover(model, population[i], population[i + </span><span class="s3">1</span><span class="s1">])</span>
+                <span class="s2">else</span><span class="s1">:</span>
+                    <span class="s1">child1, child2 = population[i], population[i + </span><span class="s3">1</span><span class="s1">]</span>
+
+                <span class="s1">original_loss1 = evaluate_individual(child1, model)</span>
+                <span class="s1">original_loss2 = evaluate_individual(child2, model)</span>
+
+                <span class="s1">child1, _ = good_bad_mutation(child1, original_loss1, model)</span>
+                <span class="s1">child2, _ = good_bad_mutation(child2, original_loss2, model)</span>
+
+                <span class="s1">new_population.extend([child1, child2])</span>
+
+        <span class="s1">population = new_population</span>
+
+    <span class="s1">plt.plot(range(</span><span class="s3">1</span><span class="s1">, len(best_loss_per_generation) + </span><span class="s3">1</span><span class="s1">), best_loss_per_generation, marker=</span><span class="s4">'o'</span><span class="s1">)</span>
+    <span class="s1">plt.title(</span><span class="s4">f&quot;Best Loss per Generation </span><span class="s5">{</span><span class="s1">param_to_train</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+    <span class="s1">plt.xlabel(</span><span class="s4">&quot;Generation&quot;</span><span class="s1">)</span>
+    <span class="s1">plt.ylabel(</span><span class="s4">&quot;Best Loss&quot;</span><span class="s1">)</span>
+    <span class="s1">plt.grid(</span><span class="s2">True</span><span class="s1">)</span>
+    <span class="s1">plt.show()</span>
+
+    <span class="s1">final_fitnesses = [evaluate_individual(ind, model) </span><span class="s2">for </span><span class="s1">ind </span><span class="s2">in </span><span class="s1">population]</span>
+    <span class="s1">best_individual = population[np.argmin(final_fitnesses)]</span>
+    <span class="s2">return </span><span class="s1">best_individual</span>
+
+<span class="s2">def </span><span class="s1">main():</span>
+    <span class="s1">best_individual = GRL_optimization(num_generations=GENS, pop_size=POP_SIZE)</span>
+    <span class="s1">model = load_existing_model()</span>
+    <span class="s1">weight_shapes = [w.shape </span><span class="s2">for </span><span class="s1">w </span><span class="s2">in </span><span class="s1">model.get_weights()]</span>
+    <span class="s1">split_indices = np.cumsum([np.prod(shape) </span><span class="s2">for </span><span class="s1">shape </span><span class="s2">in </span><span class="s1">weight_shapes], dtype=int)[:-</span><span class="s3">1</span><span class="s1">]</span>
+
+    <span class="s1">new_weights = np.split(np.array(best_individual), split_indices)</span>
+    <span class="s1">reshaped_weights = [w.reshape(shape) </span><span class="s2">for </span><span class="s1">w, shape </span><span class="s2">in </span><span class="s1">zip(new_weights, weight_shapes)]</span>
+    <span class="s1">model.set_weights(reshaped_weights)</span>
+
+    <span class="s1">model.save(save_path, save_format=</span><span class="s4">'tf'</span><span class="s1">)</span>
+    <span class="s1">print(</span><span class="s4">f&quot;Optimized model saved at: </span><span class="s5">{</span><span class="s1">save_path</span><span class="s5">}</span><span class="s4">&quot;</span><span class="s1">)</span>
+
+<span class="s2">if </span><span class="s1">__name__ == </span><span class="s4">'__main__'</span><span class="s1">:</span>
+    <span class="s1">main()</span>
+</pre>
+</body>
+</html>

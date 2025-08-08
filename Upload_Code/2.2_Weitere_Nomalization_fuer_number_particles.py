@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 2_Data_Pre_Processing
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : Weitere_Nomalization_fuer_number_particles
@@ -75,3 +74,4 @@ process_json_files_with_global_norm(json_directory_path, global_min, global_max)
 csv_output_path = os.path.join(os.getcwd(), 'global_min_max_number_particles_basic.csv')
 save_global_min_max_to_csv(global_min, global_max, csv_output_path)
 print(f"Global min and max saved to {csv_output_path}")
+

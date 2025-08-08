@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 5_Prediction_and_Bewertung
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : 5.2_Produce_heatmaps
@@ -85,3 +84,4 @@ for param in output_parameters:
 
         reshaped_data = np.array(data).reshape((num_layers, x_layer, y_layer))
         plot_heatmap(reshaped_data, file_name_without_extension, column, save_path)
+

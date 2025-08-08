@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 5_Prediction_and_Bewertung
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : 5.3_Bewertung_Zusammen
@@ -56,5 +55,6 @@ for prefix in file_prefixes:
     plt.ylabel('Cumulative Probability')
     plt.legend()
     plt.show()
+
 
 

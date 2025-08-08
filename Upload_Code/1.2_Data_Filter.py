@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 1_Data_Convert
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : 1.2_Filter_Data
@@ -65,6 +64,7 @@ input_directory = r'D:\Programmierung\Programmierung_fuer_MA\Final\1_Data_Conver
 output_directory = r'D:\Programmierung\Programmierung_fuer_MA\Final\1_Data_Convert\Filtered_Data'
 
 process_all_json_files(input_directory, output_directory)
+
 
 
 

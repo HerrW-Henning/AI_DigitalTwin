@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 2_Data_Preprocessing
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : 2.1_Nomalization_Target
@@ -74,3 +73,4 @@ input_directory = r'D:\Programmierung\Programmierung_fuer_MA\Final\1_Data_Conver
 output_directory = r'D:\Programmierung\Programmierung_fuer_MA\Final\2_Data_Preprocessing\Filtered_Target_Norm'
 
 process_all_json_files(input_directory, output_directory)
+

@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 3_Create_NN
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : 3_Create_NN_MTL_6
@@ -177,3 +176,4 @@ if __name__ == '__main__':
     epochs = 200
 
     generate_AutokerasModel(max_trials, epochs)
+

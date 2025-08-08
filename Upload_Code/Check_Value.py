@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 3_Create_NN_MinMax
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : Check_Value
@@ -64,3 +63,4 @@ for file_name in os.listdir(base_path):
                 print(f"Max Positions: {max_positions}\n")
             except ValueError as e:
                 print(e)
+

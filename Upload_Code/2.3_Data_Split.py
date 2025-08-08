@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 2_Data_Preprocessing
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : Data_Split
@@ -53,3 +52,4 @@ train_directory = r'D:\Programmierung\Programmierung_fuer_MA\Final\3_Create_NN\F
 test_directory = r'D:\Programmierung\Programmierung_fuer_MA\Final\3_Create_NN\Filtered_Real_Data\Test_Dataset'
 
 main(input_directory, train_directory, test_directory)
+

@@ -1,5 +1,4 @@
 # ！/Programmierung/Anaconda/envs python
-# @File    : 5_Prediction_and_Bewertung
 # -*- coding: utf-8 -*-
 # @Author  : Shun
 # @File    : 5.1_predict_Initial
@@ -130,4 +129,5 @@ def save_predictions_to_csv(input_data, predictions):
 if __name__ == "__main__":
     display_info_panel()
     predict_input()
+
 
